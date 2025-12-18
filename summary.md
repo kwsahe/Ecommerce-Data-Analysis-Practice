@@ -442,3 +442,82 @@ print(study_reg.best_params)
 
 구조는 똑같지만, **"문제를 푸는 방식(Loss)"**과 **"채점 기준(Metric)"**만 갈아끼운 것입니다.
 이 구조(프레임워크) 하나만 익혀두면, 세상의 모든 데이터 분석 문제에 적용할 수 있습니다! 🚀
+
+개념을 잡았으니 이제 **코드**로 비교해 보겠습니다.
+가장 흥미로운 점은 **"작동 원리는 정반대인데, 코드 사용법은 거의 똑같다"**는 것입니다. (Scikit-learn 라이브러리가 사용법을 통일해 뒀기 때문이죠!)
+
+**상황:** 학생 200명의 모의고사 성적(X)을 보고 합격 여부(y)를 예측하는 문제입니다.
+
+---
+
+### **💻 Random Forest vs XGBoost 코드 비교**
+
+이 코드를 복사해서 실행해 보세요.
+
+```python
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score
+
+# 1. 간단한 가상 데이터 생성 (학생 200명, 힌트 5개)
+X, y = make_classification(n_samples=200, n_features=5, random_state=42)
+
+# 학습용/시험용 분리
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# ==========================================
+# 🌲 1. 랜덤 포레스트 (Random Forest)
+# ==========================================
+# 특징: n_jobs=-1 (병렬 처리 가능 -> 친구들이 각자 문제 풂)
+rf_model = RandomForestClassifier(
+    n_estimators=100,  # 나무 100그루
+    max_depth=5,       # 깊이 5
+    random_state=42,
+    n_jobs=-1          # CPU 코어 다 써라! (동시에 심으니까 가능)
+)
+
+rf_model.fit(X_train, y_train)
+rf_pred = rf_model.predict(X_test)
+
+
+# ==========================================
+# 🚀 2. XGBoost
+# ==========================================
+# 특징: 순차적 처리 (병렬 불가 -> 앞 친구 오답 보고 뒷 친구가 품)
+xgb_model = XGBClassifier(
+    n_estimators=100,  # 나무 100그루
+    learning_rate=0.1, # 학습 속도 (RF에는 없는 파라미터!)
+    max_depth=5,       # 깊이 5
+    random_state=42,
+    eval_metric='logloss' # 경고 메시지 끄기용
+)
+
+xgb_model.fit(X_train, y_train)
+xgb_pred = xgb_model.predict(X_test)
+
+
+# ==========================================
+# 📊 결과 비교
+# ==========================================
+print(f"🌲 랜덤 포레스트 정확도: {accuracy_score(y_test, rf_pred):.4f}")
+print(f"🚀 XGBoost 정확도:     {accuracy_score(y_test, xgb_pred):.4f}")
+
+```
+
+---
+
+### **🧐 코드에서 주목할 차이점 3가지**
+
+사용법(`fit`, `predict`)은 똑같지만, **설정하는 옵션**에서 모델의 성격이 드러납니다.
+
+| 구분 | 랜덤 포레스트 (RF) | XGBoost (XGB) | 이유 |
+| --- | --- | --- | --- |
+| **속도 옵션** | `n_jobs=-1` (사용 O) | 사용 X (기본적으로 직렬) | RF는 나무들이 서로 남남이라 동시에 심을 수 있지만, XGB는 앞 나무를 기다려야 해서 동시에 못 심습니다. |
+| **핵심 파라미터** | `n_estimators` | `learning_rate` + `n_estimators` | RF는 투표만 하면 되지만, XGB는 **"얼마나 고칠지(Rate)"**를 정해줘야 합니다. |
+| **민감도** | 둔감함 (대충 해도 잘 나옴) | 예민함 (튜닝 안 하면 성능 널뜀) | RF는 '평균'을 내니까 튀는 값이 묻히지만, XGB는 튀는 값(오답)을 파고들기 때문입니다. |
+
+**요약:**
+코드는 거의 비슷하니 **"병렬이냐(`n_jobs`) 직렬이냐"**, **"학습률(`learning_rate`)이 있냐 없냐"**로 구분하시면 됩니다! 간단하죠? 😎
