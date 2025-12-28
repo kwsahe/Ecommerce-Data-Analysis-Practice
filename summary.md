@@ -715,3 +715,5 @@ shap.summary_plot(shap_values, X_test)
 ### ✨ 한 줄 요약
 
 **"SHAP은 AI가 내린 결론의 이유를 '더하기(+)와 빼기(-)'로 보여주는 가장 강력한 도구다."**
+
+https://wikidocs.net/152788
